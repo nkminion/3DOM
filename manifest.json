@@ -8,10 +8,6 @@
 		"48": "/icons/icon48.png",
 		"128": "/icons/icon128.png"
 	},
-	"background": {
-		"service_worker": "ServiceWorker.js",
-		"type": "module"
-	},
 	"action": {
 
 	},
@@ -21,5 +17,6 @@
 	"host_permissions": [
 		"http://*/*",
 		"https://*/*"
-	]
+	],
+	"devtools_page": "3DOMWindow.html"
 }
