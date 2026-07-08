@@ -2,7 +2,7 @@ const port = chrome.runtime.connect({
 	name: "3DOMReader"
 });
 
-function TraverseDOM(node: HTMLElement)
+function TraverseDOM(node: HTMLElement, ZIndex: number)
 {
 	const NodeStyle = window.getComputedStyle(node);
 
@@ -24,7 +24,15 @@ function TraverseDOM(node: HTMLElement)
 	const AnchorX = OriginX - (window.innerWidth)/2;
 	const AnchorY = -(OriginY - (window.innerHeight)/2);
 
-	console.log([AnchorX,AnchorY,NodeStyle.width,NodeStyle.height]);
+	port.postMessage(
+		{
+			'x': AnchorX,
+			'y': AnchorY,
+			'z': NodeStyle.zIndex === 'auto' ? ZIndex : NodeStyle.zIndex,
+			'h': NodeStyle.height,
+			'w': NodeStyle.width
+		}
+	);
 
 	if (node?.children)
 	{
@@ -32,7 +40,7 @@ function TraverseDOM(node: HTMLElement)
 		{
 			if (node.children[i] instanceof HTMLElement)
 			{
-				TraverseDOM(node.children[i] as HTMLElement);
+				TraverseDOM(node.children[i] as HTMLElement,ZIndex+1);
 			}
 		}
 	}
@@ -42,4 +50,4 @@ function TraverseDOM(node: HTMLElement)
 console.log('DOM Loaded');
 //Traverse DOM
 const parent = document.querySelector('body') as HTMLElement;
-TraverseDOM(parent);
+TraverseDOM(parent,0);
