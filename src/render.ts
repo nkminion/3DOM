@@ -13,12 +13,21 @@ const controls = new OrbitControls( camera, renderer.domElement );
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.setAnimationLoop(animate);
 document.body.appendChild(renderer.domElement);
+camera.position.z = 5;
 
 function animate()
 {
 	controls.update();
 	renderer.render(scene,camera);
 }
+
+window.addEventListener('resize', function() {
+	camera.aspect = window.innerWidth/window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+
 
 port.onMessage.addListener(function(msg) {
 	console.log(`From: ${chrome.devtools.inspectedWindow.tabId} | Msg: `,msg);
@@ -28,5 +37,3 @@ port.onMessage.addListener(function(msg) {
 	cube.position.set(msg['x'],msg['y'],(msg['z']*10));
 	scene.add(cube);
 });
-
-camera.position.z = 5;
