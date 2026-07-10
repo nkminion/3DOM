@@ -5,8 +5,9 @@ const port = chrome.runtime.connect({
 function TraverseDOM(node: HTMLElement, ZIndex: number)
 {
 	const NodeStyle = window.getComputedStyle(node);
+	const NodeRect = node.getBoundingClientRect();
 
-	if (NodeStyle.display === 'none')
+	if (NodeStyle.display === 'none' || !NodeRect.width || !NodeRect.height)
 	{
 		return;
 	}
@@ -18,8 +19,8 @@ function TraverseDOM(node: HTMLElement, ZIndex: number)
 		Anchor point in DOM is at top-left corner, Anchor point in WebGL is at center
 	*/
 
-	const OriginX = parseFloat(NodeStyle.x) + (parseFloat(NodeStyle.width)/2);
-	const OriginY = parseFloat(NodeStyle.y) + (parseFloat(NodeStyle.height)/2);
+	const OriginX = NodeRect.x + (NodeRect.width/2);
+	const OriginY = NodeRect.y + (NodeRect.height/2);
 
 	const AnchorX = OriginX - (window.innerWidth)/2;
 	const AnchorY = -(OriginY - (window.innerHeight)/2);
@@ -28,9 +29,9 @@ function TraverseDOM(node: HTMLElement, ZIndex: number)
 		{
 			'x': AnchorX,
 			'y': AnchorY,
-			'z': NodeStyle.zIndex === 'auto' ? ZIndex : NodeStyle.zIndex,
-			'h': NodeStyle.height,
-			'w': NodeStyle.width
+			'z': NodeStyle.zIndex === 'auto' ? ZIndex : parseFloat(NodeStyle.zIndex),
+			'h': NodeRect.height,
+			'w': NodeRect.width
 		}
 	);
 
