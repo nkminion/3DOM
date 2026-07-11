@@ -52,3 +52,4 @@ console.log('DOM Loaded');
 //Traverse DOM
 const parent = document.querySelector('body') as HTMLElement;
 TraverseDOM(parent,0);
+port.postMessage({'DOMLoaded':true});
