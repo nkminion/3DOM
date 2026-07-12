@@ -47,9 +47,31 @@ function TraverseDOM(node: HTMLElement, ZIndex: number)
 	}
 }
 
+let MutationTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const DOMObserver = new MutationObserver(function(mutations,observer){
+	if (MutationTimeout)
+	{
+		clearTimeout(MutationTimeout);
+	}
+	MutationTimeout = setTimeout(function() {
+		console.log('Timeout Fired');
+		port.postMessage({'Clear':true});
+		const parent = document.querySelector('body') as HTMLElement;
+		TraverseDOM(parent,0);
+		port.postMessage({'DOMLoaded':true});
+	},150);
+	console.log('DOM Changed');
+});
 
 console.log('DOM Loaded');
 //Traverse DOM
 const parent = document.querySelector('body') as HTMLElement;
 TraverseDOM(parent,0);
 port.postMessage({'DOMLoaded':true});
+
+DOMObserver.observe(document.body, {
+	childList: true,
+	subtree: true,
+	attributes: true
+});

@@ -37,6 +37,36 @@ function animate()
 	renderer.render(scene,camera);
 }
 
+function Clear(node: THREE.Object3D)
+{
+	while (node.children.length > 0)
+	{
+		Clear(node.children[0]);
+		node.remove(node.children[0]);
+	}
+	if (node instanceof THREE.Mesh)
+	{
+		if (node.geometry)
+		{
+			node.geometry.dispose();
+		}
+		if (node.material)
+		{
+			Object.keys(node.material).forEach(function(property) {
+				if (!node.material[property])
+				{
+					return;
+				}
+				if (node.material[property] !== null && typeof node.material[property].dispose === 'function')
+				{
+					node.material[property].dispose();
+				}
+			});
+			node.material.dispose();
+		}
+	}
+}
+
 function RenderDOM()
 {
 	for (const [_,DOMElement] of DOMBuffer.entries())
@@ -64,6 +94,10 @@ port.onMessage.addListener(function(msg) {
 	{
 		RenderDOM();
 		DOMBuffer.length = 0;
+	}
+	else if (msg['Clear'])
+	{
+		Clear(scene);
 	}
 	else
 	{
