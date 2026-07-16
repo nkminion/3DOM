@@ -56,7 +56,6 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 	}
 	MutationTimeout = setTimeout(function() {
 		console.log('Timeout Fired');
-		port.postMessage({'Clear':true});
 		const parent = document.querySelector('body') as HTMLElement;
 		TraverseDOM(parent,0);
 		port.postMessage({'DOMLoaded':true});

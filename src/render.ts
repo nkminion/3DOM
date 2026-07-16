@@ -16,6 +16,7 @@ const renderer = new THREE.WebGLRenderer();
 const controls = new OrbitControls( camera, renderer.domElement );
 const DOMBuffer: Array<CommMsg> = [];
 let MaxZ = -1;
+let ActiveDOMGroup = new THREE.Group();
 
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.setAnimationLoop(animate);
@@ -67,8 +68,9 @@ function Clear(node: THREE.Object3D)
 	}
 }
 
-function RenderDOM()
+async function RenderDOM()
 {
+	const StagingGroup = new THREE.Group();
 	for (const [_,DOMElement] of DOMBuffer.entries())
 	{
 		const ZColor = (Math.min(DOMElement['z'],MaxZ)/MaxZ)*306;
@@ -76,8 +78,13 @@ function RenderDOM()
 		const material = new THREE.MeshBasicMaterial({color: new THREE.Color(`hsl(${ZColor},100%,50%)`)});
 		const cube = new THREE.Mesh(geometry,material);
 		cube.position.set(DOMElement['x'],DOMElement['y'],(DOMElement['z']*10));
-		scene.add(cube);
+		StagingGroup.add(cube);
 	}
+	scene.remove(ActiveDOMGroup);
+	scene.add(StagingGroup);
+	Clear(ActiveDOMGroup);
+	ActiveDOMGroup = StagingGroup;
+	DOMBuffer.length = 0;
 }
 
 window.addEventListener('resize', function() {
@@ -93,11 +100,6 @@ port.onMessage.addListener(function(msg) {
 	if (msg['DOMLoaded'])
 	{
 		RenderDOM();
-		DOMBuffer.length = 0;
-	}
-	else if (msg['Clear'])
-	{
-		Clear(scene);
 	}
 	else
 	{
