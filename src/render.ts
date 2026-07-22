@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import GUI from 'lil-gui';
 
 interface CommMsg
 {
@@ -14,9 +15,19 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(90,window.innerWidth/window.innerHeight,0.1,10000);
 const renderer = new THREE.WebGLRenderer();
 const controls = new OrbitControls( camera, renderer.domElement );
-const DOMBuffer: Array<CommMsg> = [];
+let NewDOMBuffer: Array<CommMsg> = [];
+let CurrentDOMBuffer: Array<CommMsg> = [];
 let MaxZ = -1;
 let ActiveDOMGroup = new THREE.Group();
+
+const gui = new GUI();
+
+let RenderSettings = {
+	Scale: 0.5,
+	OnlyDims: false,
+	Depth: 5,
+	Gap: 10
+};
 
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.setAnimationLoop(animate);
@@ -68,23 +79,22 @@ function Clear(node: THREE.Object3D)
 	}
 }
 
-async function RenderDOM()
+async function RenderDOM(buffer: Array<CommMsg>)
 {
 	const StagingGroup = new THREE.Group();
-	for (const [_,DOMElement] of DOMBuffer.entries())
+	for (const [_,DOMElement] of buffer.entries())
 	{
 		const ZColor = (Math.min(DOMElement['z'],MaxZ)/MaxZ)*306;
-		const geometry = new THREE.BoxGeometry(DOMElement['w'],DOMElement['h'],5); //width,height,depth
+		const geometry = new THREE.BoxGeometry((DOMElement['w']*RenderSettings.Scale),(DOMElement['h']*RenderSettings.Scale),RenderSettings.Depth); //width,height,depth
 		const material = new THREE.MeshBasicMaterial({color: new THREE.Color(`hsl(${ZColor},100%,50%)`)});
 		const cube = new THREE.Mesh(geometry,material);
-		cube.position.set(DOMElement['x'],DOMElement['y'],(DOMElement['z']*10));
+		cube.position.set((DOMElement['x']*RenderSettings.Scale),(DOMElement['y']*RenderSettings.Scale),(DOMElement['z']*RenderSettings.Gap));
 		StagingGroup.add(cube);
 	}
 	scene.remove(ActiveDOMGroup);
 	scene.add(StagingGroup);
 	Clear(ActiveDOMGroup);
 	ActiveDOMGroup = StagingGroup;
-	DOMBuffer.length = 0;
 }
 
 window.addEventListener('resize', function() {
@@ -96,14 +106,38 @@ window.addEventListener('resize', function() {
 
 
 port.onMessage.addListener(function(msg) {
-	console.log(`From: ${chrome.devtools.inspectedWindow.tabId} | Msg: `,msg);
 	if (msg['DOMLoaded'])
 	{
-		RenderDOM();
+		RenderDOM(NewDOMBuffer);
+		[CurrentDOMBuffer, NewDOMBuffer] = [NewDOMBuffer, CurrentDOMBuffer];
+		NewDOMBuffer.length = 0;
 	}
 	else
 	{
-		DOMBuffer.push(msg);
+		NewDOMBuffer.push(msg);
 		MaxZ = Math.max(MaxZ,msg['z']);
 	}
+});
+
+const DepthController = gui.add(RenderSettings, 'Depth', 1, 50, 1).onFinishChange(async function () {
+	await RenderDOM(CurrentDOMBuffer);
+});
+
+const GapController = gui.add(RenderSettings, 'Gap', 0, 50, 1).onFinishChange(async function () {
+	await RenderDOM(CurrentDOMBuffer);
+});
+
+gui.add(RenderSettings, 'OnlyDims')
+
+gui.add(RenderSettings, 'Scale', 0.1, 1).onFinishChange(async function () {
+	if (!RenderSettings.OnlyDims)
+	{
+		RenderSettings.Depth = Math.max(1,RenderSettings.Depth*RenderSettings.Scale);
+		RenderSettings.Gap *= RenderSettings.Scale;
+
+		DepthController.updateDisplay();
+		GapController.updateDisplay();
+	}
+
+	await RenderDOM(CurrentDOMBuffer);
 });

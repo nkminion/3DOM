@@ -3,8 +3,7 @@ const PortDirectory: Record<number,chrome.runtime.Port> = {};
 chrome.runtime.onConnect.addListener(function(port) {
 	if (port.name === '3DOMReader')
 	{
-		port.onMessage.addListener(function(msg){
-			console.log(`From: ${port.sender?.tab?.id} | Msg: `,msg);
+		port.onMessage.addListener(function(msg) {
 
 			if (port.sender?.tab?.id)
 			{
