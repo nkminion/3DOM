@@ -2,4 +2,27 @@ body
 {
 	margin: 0;
 	font-family: Helvetica, Arial, sans-serif;
+	color: aliceblue;
+}
+
+.lil-gui.DarkGUI
+{
+	--background-color: #222222;
+	--title-background-color: #0C090A;
+	--widget-color: #000000;
+	--hover-color: #41424C;
+	--focus-color: #41424C;
+	--number-color: #2D9BFF;
+}
+
+.lil-gui.LightGUI
+{
+	--background-color: #dedede;
+    --title-background-color: #C8C8C8;
+	--title-text-color: #0F0700;
+    --widget-color: #F0F0F0;
+    --hover-color: #D0D0D5;
+    --focus-color: #C4C4CB;
+    --number-color: #D26400;
+    --text-color: #0F0700;
 }

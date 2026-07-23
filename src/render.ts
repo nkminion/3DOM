@@ -37,10 +37,12 @@ camera.position.z = 5;
 if (chrome.devtools.panels.themeName === 'dark')
 {
 	scene.background = new THREE.Color(0x222222);
+	gui.domElement.classList.add('DarkGUI');
 }
 else
 {
 	scene.background = new THREE.Color(0xdedede);
+	gui.domElement.classList.add('LightGUI');
 }
 
 function animate()

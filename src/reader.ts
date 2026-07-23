@@ -1,5 +1,22 @@
-const port = chrome.runtime.connect({
+let port : chrome.runtime.Port | null = chrome.runtime.connect({
 	name: "3DOMReader"
+});
+
+window.addEventListener('pagehide', function (event) {
+	if (event.persisted && port)
+	{
+		port.disconnect();
+		port = null;
+	}
+});
+
+window.addEventListener('pageshow', function (event) {
+	if (event.persisted && !port)
+	{
+		port = chrome.runtime.connect({
+			name: "3DOMReader"
+		});
+	}
 });
 
 function TraverseDOM(node: HTMLElement, ZIndex: number)
@@ -25,15 +42,18 @@ function TraverseDOM(node: HTMLElement, ZIndex: number)
 	const AnchorX = OriginX - (window.innerWidth)/2;
 	const AnchorY = -(OriginY - (window.innerHeight)/2);
 
-	port.postMessage(
-		{
-			'x': AnchorX,
-			'y': AnchorY,
-			'z': NodeStyle.zIndex === 'auto' ? ZIndex : parseFloat(NodeStyle.zIndex),
-			'h': NodeRect.height,
-			'w': NodeRect.width
-		}
-	);
+	if (port)
+	{
+		port.postMessage(
+			{
+				'x': AnchorX,
+				'y': AnchorY,
+				'z': NodeStyle.zIndex === 'auto' ? ZIndex : parseFloat(NodeStyle.zIndex),
+				'h': NodeRect.height,
+				'w': NodeRect.width
+			}
+		);
+	}
 
 	if (node?.children)
 	{
@@ -57,7 +77,10 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 	MutationTimeout = setTimeout(function() {
 		const parent = document.querySelector('body') as HTMLElement;
 		TraverseDOM(parent,0);
-		port.postMessage({'DOMLoaded':true});
+		if (port)
+		{
+			port.postMessage({'DOMLoaded':true});
+		}
 	},150);
 });
 
