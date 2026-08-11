@@ -19,10 +19,22 @@ window.addEventListener('pageshow', function (event) {
 	}
 });
 
-function TraverseDOM(node: HTMLElement, ZIndex: number)
+function TraverseDOM(node: HTMLElement, ZIndex: number, id: number)
 {
 	const NodeStyle = window.getComputedStyle(node);
 	const NodeRect = node.getBoundingClientRect();
+	const NodeTagName = node.tagName;
+	let NodeID = "Not Assigned!";
+	let NodeClass = "Not Assigned!";
+
+	if (node.hasAttribute('id'))
+	{
+		NodeID = node.id;
+	}
+	if (node.hasAttribute('class'))
+	{
+		NodeClass = node.className;
+	}
 
 	if (NodeStyle.display === 'none' || !NodeRect.width || !NodeRect.height)
 	{
@@ -46,6 +58,10 @@ function TraverseDOM(node: HTMLElement, ZIndex: number)
 	{
 		port.postMessage(
 			{
+				'id': id,
+				'tagName': NodeTagName,
+				'domId': NodeID,
+				'class': NodeClass,
 				'x': AnchorX,
 				'y': AnchorY,
 				'z': NodeStyle.zIndex === 'auto' ? ZIndex : parseFloat(NodeStyle.zIndex),
@@ -61,7 +77,8 @@ function TraverseDOM(node: HTMLElement, ZIndex: number)
 		{
 			if (node.children[i] instanceof HTMLElement)
 			{
-				TraverseDOM(node.children[i] as HTMLElement,ZIndex+1);
+				id++;
+				TraverseDOM(node.children[i] as HTMLElement,ZIndex+1,id);
 			}
 		}
 	}
@@ -76,7 +93,7 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 	}
 	MutationTimeout = setTimeout(function() {
 		const parent = document.querySelector('body') as HTMLElement;
-		TraverseDOM(parent,0);
+		TraverseDOM(parent,0,0);
 		if (port)
 		{
 			port.postMessage({'DOMLoaded':true});
@@ -87,7 +104,7 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 console.log('DOM Loaded');
 //Traverse DOM
 const parent = document.querySelector('body') as HTMLElement;
-TraverseDOM(parent,0);
+TraverseDOM(parent,0,0);
 port.postMessage({'DOMLoaded':true});
 
 DOMObserver.observe(document.body, {
