@@ -15,6 +15,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(90,window.innerWidth/window.innerHeight,0.1,10000);
 const renderer = new THREE.WebGLRenderer();
 const controls = new OrbitControls( camera, renderer.domElement );
+const raycaster = new THREE.Raycaster();
 let NewDOMBuffer: Array<CommMsg> = [];
 let CurrentDOMBuffer: Array<CommMsg> = [];
 let MaxZ = -1;
@@ -81,15 +82,49 @@ function Clear(node: THREE.Object3D)
 	}
 }
 
+function getMouseVector2(event: MouseEvent,window: Window)
+{
+	let mousePointer = new THREE.Vector2();
+
+	mousePointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+	mousePointer.y = -(event.clientY/window.innerHeight) * 2 + 1;
+
+	return mousePointer;
+}
+
+function checkRayIntersection(mousePointer: THREE.Vector2, camera: THREE.PerspectiveCamera, raycaster: THREE.Raycaster, scene: THREE.Scene)
+{
+	raycaster.setFromCamera(mousePointer,camera);
+
+	let intersection = raycaster.intersectObjects(scene.children,true);
+
+	return intersection[0];
+}
+
+function onMouseMove(event: MouseEvent)
+{
+	let mousePointer = getMouseVector2(event,window);
+
+	const intersection = checkRayIntersection(mousePointer,camera,raycaster,scene);
+
+	if (intersection)
+	{
+		console.log("Hovering On: ",intersection.object.name);
+		console.log(CurrentDOMBuffer[parseInt(intersection.object.name)]);
+	}
+}
+
 async function RenderDOM(buffer: Array<CommMsg>)
 {
 	const StagingGroup = new THREE.Group();
 	for (const [_,DOMElement] of buffer.entries())
 	{
-		const ZColor = (Math.min(DOMElement['z'],MaxZ)/MaxZ)*306;
-		const geometry = new THREE.BoxGeometry((DOMElement['w']*RenderSettings.Scale),(DOMElement['h']*RenderSettings.Scale),RenderSettings.Depth); //width,height,depth
+		const SafeZ = MaxZ === 0 ? 1 : MaxZ;
+		const ZColor = (Math.min(DOMElement['z'],MaxZ)/SafeZ)*306;
+		const geometry = new THREE.BoxGeometry((DOMElement['w']*RenderSettings.Scale),(DOMElement['h']*RenderSettings.Scale),RenderSettings.Depth * (RenderSettings.OnlyDims ? 1 : RenderSettings.Scale)); //width,height,depth
 		const material = new THREE.MeshBasicMaterial({color: new THREE.Color(`hsl(${ZColor},100%,50%)`)});
 		const cube = new THREE.Mesh(geometry,material);
+		cube.name = DOMElement['id'].toString();
 		cube.position.set((DOMElement['x']*RenderSettings.Scale),(DOMElement['y']*RenderSettings.Scale),(DOMElement['z']*RenderSettings.Gap));
 		StagingGroup.add(cube);
 	}
@@ -105,7 +140,7 @@ window.addEventListener('resize', function() {
 	renderer.setSize(window.innerWidth,window.innerHeight);
 });
 
-
+document.addEventListener('mousemove', onMouseMove);
 
 port.onMessage.addListener(function(msg) {
 	if (msg['DOMLoaded'])
