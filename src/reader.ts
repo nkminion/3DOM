@@ -1,6 +1,22 @@
-let port : chrome.runtime.Port | null = chrome.runtime.connect({
-	name: "3DOMReader"
-});
+let port: chrome.runtime.Port | null = null;
+
+function connectPort()
+{
+	port = chrome.runtime.connect({
+		name: "3DOMReader"
+	});
+
+	port.onDisconnect.addListener(function() {
+		if (chrome.runtime.lastError)
+		{
+			const ErrorMessage = chrome.runtime.lastError.message;
+		}
+		DOMObserver.disconnect();
+		port = null;
+	});
+}
+
+connectPort();
 
 window.addEventListener('pagehide', function (event) {
 	if (event.persisted && port)
@@ -13,9 +29,7 @@ window.addEventListener('pagehide', function (event) {
 window.addEventListener('pageshow', function (event) {
 	if (event.persisted && !port)
 	{
-		port = chrome.runtime.connect({
-			name: "3DOMReader"
-		});
+		connectPort();
 	}
 });
 
@@ -44,7 +58,7 @@ function CheckAndPostMessage(msg: Record<string,any>)
 	}
 }
 
-function TraverseDOM(node: HTMLElement, ZIndex: number, tracker: {id: number})
+function TraverseDOM(node: Element, ZIndex: number, tracker: {id: number})
 {
 	const NodeStyle = window.getComputedStyle(node);
 	const NodeRect = node.getBoundingClientRect();
@@ -58,7 +72,7 @@ function TraverseDOM(node: HTMLElement, ZIndex: number, tracker: {id: number})
 	}
 	if (node.hasAttribute('class'))
 	{
-		NodeClass = node.className;
+		NodeClass = node.getAttribute('class')?.toString() || "Not Assigned!";
 	}
 
 	if (NodeStyle.display === 'none' || !NodeRect.width || !NodeRect.height)
@@ -78,6 +92,8 @@ function TraverseDOM(node: HTMLElement, ZIndex: number, tracker: {id: number})
 
 	const AnchorX = OriginX - (window.innerWidth)/2;
 	const AnchorY = -(OriginY - (window.innerHeight)/2);
+	const ParsedZIndex = parseFloat(NodeStyle.zIndex);
+	const FinalZIndex = isNaN(ParsedZIndex) ? ZIndex : ParsedZIndex;
 
 	if (port)
 	{
@@ -89,7 +105,7 @@ function TraverseDOM(node: HTMLElement, ZIndex: number, tracker: {id: number})
 				'Classes': NodeClass,
 				'PosX': AnchorX,
 				'PosY': AnchorY,
-				'ZIndex': NodeStyle.zIndex === 'auto' ? ZIndex : parseFloat(NodeStyle.zIndex),
+				'ZIndex': FinalZIndex,
 				'Height': NodeRect.height,
 				'Width': NodeRect.width
 			}
@@ -100,10 +116,10 @@ function TraverseDOM(node: HTMLElement, ZIndex: number, tracker: {id: number})
 	{
 		for (let i=0;i<node.children.length;i++)
 		{
-			if (node.children[i] instanceof HTMLElement)
+			if (node.children[i] instanceof Element)
 			{
 				tracker.id++;
-				TraverseDOM(node.children[i] as HTMLElement,ZIndex+1,tracker);
+				TraverseDOM(node.children[i] as Element,ZIndex+1,tracker);
 			}
 		}
 	}
@@ -117,7 +133,8 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 		clearTimeout(MutationTimeout);
 	}
 	MutationTimeout = setTimeout(function() {
-		const parent = document.querySelector('body') as HTMLElement;
+		const parent = document.querySelector('body') as Element;
+		if (!parent) return;
 		TraverseDOM(parent,0,{id: 0});
 		if (port)
 		{
@@ -126,17 +143,31 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 	},150);
 });
 
-console.log('DOM Loaded');
-//Traverse DOM
-const parent = document.querySelector('body') as HTMLElement;
-TraverseDOM(parent,0,{id: 0});
-if (port)
+function init()
 {
-	CheckAndPostMessage({'DOMLoaded':true});
+	console.log('DOM Loaded');
+	//Traverse DOM
+	const parent = document.querySelector('body') as Element;
+	if (!parent) return;
+
+	TraverseDOM(parent,0,{id: 0});
+	if (port)
+	{
+		CheckAndPostMessage({'DOMLoaded':true});
+	}
+
+	DOMObserver.observe(document.body, {
+		childList: true,
+		subtree: true,
+		attributes: true
+	});
 }
 
-DOMObserver.observe(document.body, {
-	childList: true,
-	subtree: true,
-	attributes: true
-});
+if (document.readyState === 'loading')
+{
+	document.addEventListener('DOMContentLoaded', init);
+}
+else
+{
+	init();
+}
