@@ -19,6 +19,31 @@ window.addEventListener('pageshow', function (event) {
 	}
 });
 
+function CheckAndPostMessage(msg: Record<string,any>)
+{
+	//Context inactive
+	if (!chrome.runtime?.id)
+	{
+		///Disconnection stuff
+		DOMObserver.disconnect();
+		port = null;
+		return;
+	}
+
+	try
+	{
+		if (port)
+		{
+			port.postMessage(msg);
+		}
+	}
+	catch (error)
+	{
+		DOMObserver.disconnect();
+		port = null;
+	}
+}
+
 function TraverseDOM(node: HTMLElement, ZIndex: number, tracker: {id: number})
 {
 	const NodeStyle = window.getComputedStyle(node);
@@ -56,7 +81,7 @@ function TraverseDOM(node: HTMLElement, ZIndex: number, tracker: {id: number})
 
 	if (port)
 	{
-		port.postMessage(
+		CheckAndPostMessage(
 			{
 				'id': tracker.id,
 				'TagName': NodeTagName,
@@ -96,7 +121,7 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 		TraverseDOM(parent,0,{id: 0});
 		if (port)
 		{
-			port.postMessage({'DOMLoaded':true});
+			CheckAndPostMessage({'DOMLoaded':true});
 		}
 	},150);
 });
@@ -107,7 +132,7 @@ const parent = document.querySelector('body') as HTMLElement;
 TraverseDOM(parent,0,{id: 0});
 if (port)
 {
-	port.postMessage({'DOMLoaded':true});
+	CheckAndPostMessage({'DOMLoaded':true});
 }
 
 DOMObserver.observe(document.body, {
