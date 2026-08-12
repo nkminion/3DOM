@@ -122,12 +122,16 @@ function onMouseMove(event: MouseEvent)
 
 	if (intersection)
 	{
-		const BufferInfo = CurrentDOMBuffer[parseInt(intersection.object.name)];
-		for (const key in RenderInfo)
+		const TargetID = parseInt(intersection.object.name);
+		const BufferInfo = CurrentDOMBuffer.find(item => item['id'] === TargetID);
+		if (BufferInfo)
 		{
-			if (RenderInfo.hasOwnProperty(key))
+			for (const key in RenderInfo)
 			{
-				RenderInfo[key as keyof typeof RenderInfo] = BufferInfo[key as keyof typeof BufferInfo].toString();
+				if (RenderInfo.hasOwnProperty(key))
+				{
+					RenderInfo[key as keyof typeof RenderInfo] = BufferInfo[key as keyof typeof BufferInfo].toString();
+				}
 			}
 		}
 	}
