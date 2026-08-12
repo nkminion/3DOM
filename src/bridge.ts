@@ -4,12 +4,12 @@ chrome.runtime.onConnect.addListener(function(port) {
 	if (port.name === '3DOMReader')
 	{
 		port.onMessage.addListener(function(msg) {
-
-			if (port.sender?.tab?.id)
+			const TabID = port.sender?.tab?.id;
+			if (TabID !== undefined)
 			{
-				if (PortDirectory[port.sender?.tab?.id])
+				if (PortDirectory[TabID])
 				{
-					PortDirectory[port.sender?.tab?.id].postMessage(msg);
+					PortDirectory[TabID].postMessage(msg);
 				}
 			}
 		});
