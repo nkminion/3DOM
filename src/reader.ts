@@ -19,7 +19,7 @@ window.addEventListener('pageshow', function (event) {
 	}
 });
 
-function TraverseDOM(node: HTMLElement, ZIndex: number, id: number)
+function TraverseDOM(node: HTMLElement, ZIndex: number, tracker: {id: number})
 {
 	const NodeStyle = window.getComputedStyle(node);
 	const NodeRect = node.getBoundingClientRect();
@@ -58,7 +58,7 @@ function TraverseDOM(node: HTMLElement, ZIndex: number, id: number)
 	{
 		port.postMessage(
 			{
-				'id': id,
+				'id': tracker.id,
 				'TagName': NodeTagName,
 				'DOMID': NodeID,
 				'Classes': NodeClass,
@@ -77,8 +77,8 @@ function TraverseDOM(node: HTMLElement, ZIndex: number, id: number)
 		{
 			if (node.children[i] instanceof HTMLElement)
 			{
-				id++;
-				TraverseDOM(node.children[i] as HTMLElement,ZIndex+1,id);
+				tracker.id++;
+				TraverseDOM(node.children[i] as HTMLElement,ZIndex+1,tracker);
 			}
 		}
 	}
@@ -93,7 +93,7 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 	}
 	MutationTimeout = setTimeout(function() {
 		const parent = document.querySelector('body') as HTMLElement;
-		TraverseDOM(parent,0,0);
+		TraverseDOM(parent,0,{id: 0});
 		if (port)
 		{
 			port.postMessage({'DOMLoaded':true});
@@ -104,7 +104,7 @@ const DOMObserver = new MutationObserver(function(mutations,observer){
 console.log('DOM Loaded');
 //Traverse DOM
 const parent = document.querySelector('body') as HTMLElement;
-TraverseDOM(parent,0,0);
+TraverseDOM(parent,0,{id: 0});
 port.postMessage({'DOMLoaded':true});
 
 DOMObserver.observe(document.body, {
