@@ -9,6 +9,7 @@ export default defineConfig({
 		})
 	],
 	build: {
+		modulePreload: false,
 		rollupOptions: {
 			input: {
 				panel: '/src/index.html'
