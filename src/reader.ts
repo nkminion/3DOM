@@ -105,7 +105,10 @@ console.log('DOM Loaded');
 //Traverse DOM
 const parent = document.querySelector('body') as HTMLElement;
 TraverseDOM(parent,0,{id: 0});
-port.postMessage({'DOMLoaded':true});
+if (port)
+{
+	port.postMessage({'DOMLoaded':true});
+}
 
 DOMObserver.observe(document.body, {
 	childList: true,
