@@ -80,17 +80,14 @@ function Clear(node: THREE.Object3D)
 		}
 		if (node.material)
 		{
-			Object.keys(node.material).forEach(function(property) {
-				if (!node.material[property])
-				{
-					return;
-				}
-				if (node.material[property] !== null && typeof node.material[property].dispose === 'function')
-				{
-					node.material[property].dispose();
-				}
-			});
-			node.material.dispose();
+			if (Array.isArray(node.material))
+			{
+				node.material.forEach(m => m.dispose());
+			}
+			else
+			{
+				node.material.dispose();
+			}
 		}
 	}
 }
