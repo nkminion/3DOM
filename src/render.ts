@@ -4,7 +4,15 @@ import GUI from 'lil-gui';
 
 interface CommMsg
 {
-	[key: string]: number;
+	id: number,
+	TagName: string,
+	DOMID: string,
+	Classes: string,
+	PosX: number,
+	PosY: number,
+	ZIndex: number,
+	Height: number,
+	Width: number
 }
 
 const port = chrome.runtime.connect({
