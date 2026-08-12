@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import GUI from 'lil-gui';
+import { GUI,Controller } from 'lil-gui';
 
 interface CommMsg
 {
@@ -176,6 +176,11 @@ async function RenderDOM(buffer: Array<CommMsg>)
 	ActiveDOMGroup = StagingGroup;
 }
 
+function MakeReadOnly(controller: Controller)
+{
+	controller.domElement.style.pointerEvents = 'none';
+}
+
 window.addEventListener('resize', function() {
 	camera.aspect = window.innerWidth/window.innerHeight;
 	camera.updateProjectionMatrix();
@@ -221,11 +226,11 @@ OptionsFolder.add(RenderSettings, 'Scale', 0.1, 1).onFinishChange(async function
 	await RenderDOM(CurrentDOMBuffer);
 });
 
-InfoFolder.add(RenderInfo,'TagName').disable();
-InfoFolder.add(RenderInfo,'DOMID').disable();
-InfoFolder.add(RenderInfo,'Classes').disable();
-InfoFolder.add(RenderInfo,'PosX').disable();
-InfoFolder.add(RenderInfo,'PosY').disable();
-InfoFolder.add(RenderInfo,'ZIndex').disable();
-InfoFolder.add(RenderInfo,'Height').disable();
-InfoFolder.add(RenderInfo,'Width').disable();
+MakeReadOnly(InfoFolder.add(RenderInfo,'TagName'));
+MakeReadOnly(InfoFolder.add(RenderInfo,'DOMID'));
+MakeReadOnly(InfoFolder.add(RenderInfo,'Classes'));
+MakeReadOnly(InfoFolder.add(RenderInfo,'PosX'));
+MakeReadOnly(InfoFolder.add(RenderInfo,'PosY'));
+MakeReadOnly(InfoFolder.add(RenderInfo,'ZIndex'));
+MakeReadOnly(InfoFolder.add(RenderInfo,'Height'));
+MakeReadOnly(InfoFolder.add(RenderInfo,'Width'));
