@@ -22,6 +22,8 @@ let MaxZ = -1;
 let ActiveDOMGroup = new THREE.Group();
 
 const gui = new GUI();
+const OptionsFolder = gui.addFolder('Options');
+const InfoFolder = gui.addFolder('Details');
 
 let RenderSettings = {
 	Scale: 0.5,
@@ -187,17 +189,17 @@ port.onMessage.addListener(function(msg) {
 	}
 });
 
-const DepthController = gui.add(RenderSettings, 'Depth', 1, 50, 1).onFinishChange(async function () {
+const DepthController = OptionsFolder.add(RenderSettings, 'Depth', 1, 50, 1).onFinishChange(async function () {
 	await RenderDOM(CurrentDOMBuffer);
 });
 
-const GapController = gui.add(RenderSettings, 'Gap', 0, 50, 1).onFinishChange(async function () {
+const GapController = OptionsFolder.add(RenderSettings, 'Gap', 0, 50, 1).onFinishChange(async function () {
 	await RenderDOM(CurrentDOMBuffer);
 });
 
-gui.add(RenderSettings, 'OnlyDims')
+OptionsFolder.add(RenderSettings, 'OnlyDims')
 
-gui.add(RenderSettings, 'Scale', 0.1, 1).onFinishChange(async function () {
+OptionsFolder.add(RenderSettings, 'Scale', 0.1, 1).onFinishChange(async function () {
 	if (!RenderSettings.OnlyDims)
 	{
 		RenderSettings.Depth = Math.max(1,RenderSettings.Depth*RenderSettings.Scale);
@@ -210,11 +212,11 @@ gui.add(RenderSettings, 'Scale', 0.1, 1).onFinishChange(async function () {
 	await RenderDOM(CurrentDOMBuffer);
 });
 
-gui.add(RenderInfo,'TagName');
-gui.add(RenderInfo,'DOMID');
-gui.add(RenderInfo,'Classes');
-gui.add(RenderInfo,'PosX');
-gui.add(RenderInfo,'PosY');
-gui.add(RenderInfo,'ZIndex');
-gui.add(RenderInfo,'Height');
-gui.add(RenderInfo,'Width');
+InfoFolder.add(RenderInfo,'TagName').disable();
+InfoFolder.add(RenderInfo,'DOMID').disable();
+InfoFolder.add(RenderInfo,'Classes').disable();
+InfoFolder.add(RenderInfo,'PosX').disable();
+InfoFolder.add(RenderInfo,'PosY').disable();
+InfoFolder.add(RenderInfo,'ZIndex').disable();
+InfoFolder.add(RenderInfo,'Height').disable();
+InfoFolder.add(RenderInfo,'Width').disable();
