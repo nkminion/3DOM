@@ -59,14 +59,14 @@ function TraverseDOM(node: HTMLElement, ZIndex: number, id: number)
 		port.postMessage(
 			{
 				'id': id,
-				'tagName': NodeTagName,
-				'domId': NodeID,
-				'class': NodeClass,
-				'x': AnchorX,
-				'y': AnchorY,
-				'z': NodeStyle.zIndex === 'auto' ? ZIndex : parseFloat(NodeStyle.zIndex),
-				'h': NodeRect.height,
-				'w': NodeRect.width
+				'TagName': NodeTagName,
+				'DOMID': NodeID,
+				'Classes': NodeClass,
+				'PosX': AnchorX,
+				'PosY': AnchorY,
+				'ZIndex': NodeStyle.zIndex === 'auto' ? ZIndex : parseFloat(NodeStyle.zIndex),
+				'Height': NodeRect.height,
+				'Width': NodeRect.width
 			}
 		);
 	}
