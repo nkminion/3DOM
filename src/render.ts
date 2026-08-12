@@ -30,6 +30,17 @@ let RenderSettings = {
 	Gap: 10
 };
 
+let RenderInfo = {
+	TagName: "",
+	DOMID: "",
+	Classes: "",
+	PosX: "",
+	PosY: "",
+	ZIndex: "",
+	Height: "",
+	Width: "",
+};
+
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.setAnimationLoop(animate);
 document.body.appendChild(renderer.domElement);
@@ -109,9 +120,29 @@ function onMouseMove(event: MouseEvent)
 
 	if (intersection)
 	{
-		console.log("Hovering On: ",intersection.object.name);
-		console.log(CurrentDOMBuffer[parseInt(intersection.object.name)]);
+		const BufferInfo = CurrentDOMBuffer[parseInt(intersection.object.name)];
+		for (const key in RenderInfo)
+		{
+			if (RenderInfo.hasOwnProperty(key))
+			{
+				RenderInfo[key as keyof typeof RenderInfo] = BufferInfo[key as keyof typeof BufferInfo].toString();
+			}
+		}
 	}
+	else
+	{
+		for (const key in RenderInfo)
+		{
+			if (RenderInfo.hasOwnProperty(key))
+			{
+				RenderInfo[key as keyof typeof RenderInfo] = "";
+			}
+		}
+	}
+
+	gui.controllersRecursive().forEach(controller => {
+		controller.updateDisplay();
+	});
 }
 
 async function RenderDOM(buffer: Array<CommMsg>)
@@ -120,12 +151,12 @@ async function RenderDOM(buffer: Array<CommMsg>)
 	for (const [_,DOMElement] of buffer.entries())
 	{
 		const SafeZ = MaxZ === 0 ? 1 : MaxZ;
-		const ZColor = (Math.min(DOMElement['z'],MaxZ)/SafeZ)*306;
-		const geometry = new THREE.BoxGeometry((DOMElement['w']*RenderSettings.Scale),(DOMElement['h']*RenderSettings.Scale),RenderSettings.Depth * (RenderSettings.OnlyDims ? 1 : RenderSettings.Scale)); //width,height,depth
+		const ZColor = (Math.min(DOMElement['ZIndex'],MaxZ)/SafeZ)*306;
+		const geometry = new THREE.BoxGeometry((DOMElement['Width']*RenderSettings.Scale),(DOMElement['Height']*RenderSettings.Scale),RenderSettings.Depth * (RenderSettings.OnlyDims ? 1 : RenderSettings.Scale)); //width,height,depth
 		const material = new THREE.MeshBasicMaterial({color: new THREE.Color(`hsl(${ZColor},100%,50%)`)});
 		const cube = new THREE.Mesh(geometry,material);
 		cube.name = DOMElement['id'].toString();
-		cube.position.set((DOMElement['x']*RenderSettings.Scale),(DOMElement['y']*RenderSettings.Scale),(DOMElement['z']*RenderSettings.Gap));
+		cube.position.set((DOMElement['PosX']*RenderSettings.Scale),(DOMElement['PosY']*RenderSettings.Scale),(DOMElement['ZIndex']*RenderSettings.Gap));
 		StagingGroup.add(cube);
 	}
 	scene.remove(ActiveDOMGroup);
@@ -152,7 +183,7 @@ port.onMessage.addListener(function(msg) {
 	else
 	{
 		NewDOMBuffer.push(msg);
-		MaxZ = Math.max(MaxZ,msg['z']);
+		MaxZ = Math.max(MaxZ,msg['ZIndex']);
 	}
 });
 
@@ -178,3 +209,12 @@ gui.add(RenderSettings, 'Scale', 0.1, 1).onFinishChange(async function () {
 
 	await RenderDOM(CurrentDOMBuffer);
 });
+
+gui.add(RenderInfo,'TagName');
+gui.add(RenderInfo,'DOMID');
+gui.add(RenderInfo,'Classes');
+gui.add(RenderInfo,'PosX');
+gui.add(RenderInfo,'PosY');
+gui.add(RenderInfo,'ZIndex');
+gui.add(RenderInfo,'Height');
+gui.add(RenderInfo,'Width');
