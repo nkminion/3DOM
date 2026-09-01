@@ -75,10 +75,7 @@ function TraverseDOM(node: Element, ZIndex: number, tracker: {id: number})
 		NodeClass = node.getAttribute('class')?.toString() || "Not Assigned!";
 	}
 
-	if (NodeStyle.display === 'none' || !NodeRect.width || !NodeRect.height)
-	{
-		return;
-	}
+	const IsVisible = NodeStyle.display != 'none' && NodeRect.width > 0 && NodeRect.height > 0;
 	
 	/*
 		Convert DOM Space coordinates to WebGL Space coordinates
@@ -95,7 +92,7 @@ function TraverseDOM(node: Element, ZIndex: number, tracker: {id: number})
 	const ParsedZIndex = parseFloat(NodeStyle.zIndex);
 	const FinalZIndex = isNaN(ParsedZIndex) ? ZIndex : ParsedZIndex;
 
-	if (port)
+	if (IsVisible && port)
 	{
 		CheckAndPostMessage(
 			{
@@ -126,22 +123,47 @@ function TraverseDOM(node: Element, ZIndex: number, tracker: {id: number})
 }
 
 let MutationTimeout: ReturnType<typeof setTimeout> | null = null;
+let LastRunTime = 0;
+const MaxWaitMs = 300;
 
-const DOMObserver = new MutationObserver(function(mutations,observer){
+function ExecuteTraverse()
+{
+	LastRunTime = Date.now();
+	const parent = document.querySelector('body') as Element;
+	if (!parent) return;
+	TraverseDOM(parent,0,{id: 0});
+	if (port)
+	{
+		CheckAndPostMessage({'DOMLoaded':true});
+	}
+}
+
+function ScheduleTraverse()
+{
+	const now = Date.now();
+	if (now-LastRunTime > MaxWaitMs)
+	{
+		if (MutationTimeout)
+		{
+			clearTimeout(MutationTimeout);
+			MutationTimeout = null;
+		}
+		ExecuteTraverse();
+		return;
+	}
 	if (MutationTimeout)
 	{
 		clearTimeout(MutationTimeout);
 	}
 	MutationTimeout = setTimeout(function() {
-		const parent = document.querySelector('body') as Element;
-		if (!parent) return;
-		TraverseDOM(parent,0,{id: 0});
-		if (port)
-		{
-			CheckAndPostMessage({'DOMLoaded':true});
-		}
+		ExecuteTraverse();
 	},150);
-});
+	
+}
+
+const DOMObserver = new MutationObserver(ScheduleTraverse);
+
+const LayoutObserver = new ResizeObserver(ScheduleTraverse);
 
 function init()
 {
@@ -156,12 +178,20 @@ function init()
 		CheckAndPostMessage({'DOMLoaded':true});
 	}
 
-	DOMObserver.observe(document.body, {
+	DOMObserver.observe(parent, {
 		childList: true,
 		subtree: true,
 		attributes: true
 	});
+
+	LayoutObserver.observe(parent);
 }
+
+window.addEventListener('scroll', ScheduleTraverse);
+window.addEventListener('animationend', ScheduleTraverse);
+window.addEventListener('transitionend', ScheduleTraverse);
+window.addEventListener('resize', ScheduleTraverse);
+window.addEventListener('load', ScheduleTraverse);
 
 if (document.readyState === 'loading')
 {
