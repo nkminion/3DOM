@@ -10,6 +10,7 @@ function connectPort()
 		if (chrome.runtime.lastError)
 		{
 			const ErrorMessage = chrome.runtime.lastError.message;
+			console.warn(ErrorMessage);
 		}
 		DOMObserver.disconnect();
 		port = null;

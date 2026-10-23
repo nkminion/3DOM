@@ -7,6 +7,7 @@ chrome.runtime.onConnect.addListener(function(port) {
 			if (chrome.runtime.lastError)
 			{
 				const ErrorMessage = chrome.runtime.lastError.message;
+				console.warn(ErrorMessage);
 			}
 		});
 		
