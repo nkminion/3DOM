@@ -27,6 +27,7 @@ const raycaster = new THREE.Raycaster();
 let NewDOMBuffer: Array<CommMsg> = [];
 let CurrentDOMBuffer: Array<CommMsg> = [];
 let MaxZ = -1;
+let CurrentMaxZ = -1;
 let ActiveDOMGroup = new THREE.Group();
 
 const gui = new GUI();
@@ -37,7 +38,9 @@ let RenderSettings = {
 	Scale: 0.5,
 	OnlyDims: false,
 	Depth: 5,
-	Gap: 10
+	Gap: 10,
+	BaseDepth: 5,
+	BaseGap: 10
 };
 
 let RenderInfo = {
@@ -133,7 +136,7 @@ function onMouseMove(event: MouseEvent)
 		{
 			for (const key in RenderInfo)
 			{
-				if (RenderInfo.hasOwnProperty(key))
+				if (Object.prototype.hasOwnProperty.call(RenderInfo,key))
 				{
 					RenderInfo[key as keyof typeof RenderInfo] = BufferInfo[key as keyof typeof BufferInfo].toString();
 				}
@@ -144,7 +147,7 @@ function onMouseMove(event: MouseEvent)
 	{
 		for (const key in RenderInfo)
 		{
-			if (RenderInfo.hasOwnProperty(key))
+			if (Object.prototype.hasOwnProperty.call(RenderInfo,key))
 			{
 				RenderInfo[key as keyof typeof RenderInfo] = "";
 			}
@@ -156,15 +159,15 @@ function onMouseMove(event: MouseEvent)
 	});
 }
 
-async function RenderDOM(buffer: Array<CommMsg>)
+function RenderDOM(buffer: Array<CommMsg>)
 {
 	const StagingGroup = new THREE.Group();
-	for (const [_,DOMElement] of buffer.entries())
+	for (const DOMElement of buffer)
 	{
-		const SafeZ = MaxZ === 0 ? 1 : MaxZ;
-		const ZColor = (Math.min(DOMElement['ZIndex'],MaxZ)/SafeZ)*306;
+		const SafeZ = CurrentMaxZ === 0 ? 1 : CurrentMaxZ;
+		const ZColor = (Math.min(DOMElement['ZIndex'],CurrentMaxZ)/SafeZ)*0.85;
 		const geometry = new THREE.BoxGeometry((DOMElement['Width']*RenderSettings.Scale),(DOMElement['Height']*RenderSettings.Scale),RenderSettings.Depth * (RenderSettings.OnlyDims ? 1 : RenderSettings.Scale)); //width,height,depth
-		const material = new THREE.MeshBasicMaterial({color: new THREE.Color(`hsl(${ZColor},100%,50%)`)});
+		const material = new THREE.MeshBasicMaterial({color: new THREE.Color().setHSL(ZColor,1,0.5)});
 		const cube = new THREE.Mesh(geometry,material);
 		cube.name = DOMElement['id'].toString();
 		cube.position.set((DOMElement['PosX']*RenderSettings.Scale),(DOMElement['PosY']*RenderSettings.Scale),(DOMElement['ZIndex']*RenderSettings.Gap));
@@ -192,9 +195,11 @@ document.addEventListener('mousemove', onMouseMove);
 port.onMessage.addListener(function(msg) {
 	if (msg['DOMLoaded'])
 	{
+		CurrentMaxZ = MaxZ;
 		RenderDOM(NewDOMBuffer);
 		[CurrentDOMBuffer, NewDOMBuffer] = [NewDOMBuffer, CurrentDOMBuffer];
 		NewDOMBuffer.length = 0;
+		MaxZ = -1;
 	}
 	else
 	{
@@ -204,11 +209,13 @@ port.onMessage.addListener(function(msg) {
 });
 
 const DepthController = OptionsFolder.add(RenderSettings, 'Depth', 1, 50, 1).onFinishChange(async function () {
-	await RenderDOM(CurrentDOMBuffer);
+	RenderSettings.BaseDepth = RenderSettings.Depth;
+	RenderDOM(CurrentDOMBuffer);
 });
 
 const GapController = OptionsFolder.add(RenderSettings, 'Gap', 0, 50, 1).onFinishChange(async function () {
-	await RenderDOM(CurrentDOMBuffer);
+	RenderSettings.BaseGap = RenderSettings.Gap;
+	RenderDOM(CurrentDOMBuffer);
 });
 
 OptionsFolder.add(RenderSettings, 'OnlyDims')
@@ -216,14 +223,14 @@ OptionsFolder.add(RenderSettings, 'OnlyDims')
 OptionsFolder.add(RenderSettings, 'Scale', 0.1, 1).onFinishChange(async function () {
 	if (!RenderSettings.OnlyDims)
 	{
-		RenderSettings.Depth = Math.max(1,RenderSettings.Depth*RenderSettings.Scale);
-		RenderSettings.Gap *= RenderSettings.Scale;
+		RenderSettings.Depth = Math.max(1,RenderSettings.BaseDepth*RenderSettings.Scale);
+		RenderSettings.Gap = RenderSettings.BaseGap * RenderSettings.Scale;
 
 		DepthController.updateDisplay();
 		GapController.updateDisplay();
 	}
 
-	await RenderDOM(CurrentDOMBuffer);
+	RenderDOM(CurrentDOMBuffer);
 });
 
 MakeReadOnly(InfoFolder.add(RenderInfo,'TagName'));
