@@ -23,15 +23,5 @@
 			]
 		}
 	],
-	"action": {
-
-	},
-	"permissions": [
-		"scripting"
-	],
-	"host_permissions": [
-		"http://*/*",
-		"https://*/*"
-	],
 	"devtools_page": "src/3DOMWindow.html"
 }
