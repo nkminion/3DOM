@@ -20,7 +20,7 @@ const port = chrome.runtime.connect({
 });
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(90,window.innerWidth/window.innerHeight,0.1,100000000000000);
+const camera = new THREE.PerspectiveCamera(90,window.innerWidth/window.innerHeight,0.1,10000);
 const renderer = new THREE.WebGLRenderer();
 const controls = new OrbitControls( camera, renderer.domElement );
 const raycaster = new THREE.Raycaster();
