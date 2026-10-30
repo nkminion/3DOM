@@ -29,18 +29,33 @@ let CurrentDOMBuffer: Array<CommMsg> = [];
 let MaxZ = -1;
 let CurrentMaxZ = -1;
 let ActiveDOMGroup = new THREE.Group();
+let HasFittedCamera = false;
 
 const gui = new GUI();
 const OptionsFolder = gui.addFolder('Options');
 const InfoFolder = gui.addFolder('Details');
 
-let RenderSettings = {
+const DefaultSettings = {
 	Scale: 0.5,
-	OnlyDims: false,
 	Depth: 5,
-	Gap: 10,
+	Gap: 10
+}
+
+let RenderSettings = {
+	Scale: DefaultSettings.Scale,
+	OnlyDims: false,
+	Depth: DefaultSettings.Depth,
+	Gap: DefaultSettings.Gap,
 	BaseDepth: 5,
-	BaseGap: 10
+	BaseGap: 10,
+	'Reset View': function() {
+		this.Scale = DefaultSettings.Scale;
+		this.Depth = DefaultSettings.Depth;
+		this.Gap = DefaultSettings.Gap;
+
+		OptionsFolder.controllersRecursive().forEach(c => c.updateDisplay());
+		FitCamera(camera, controls, ActiveDOMGroup);
+	}
 };
 
 let RenderInfo = {
@@ -74,6 +89,50 @@ function animate()
 {
 	controls.update();
 	renderer.render(scene,camera);
+}
+
+function FitCamera(camera: THREE.PerspectiveCamera, controls: OrbitControls, RootObject: THREE.Object3D, OffsetFactor: number = 1.25) : void
+{
+	const box = new THREE.Box3().setFromObject(RootObject);
+
+	if (box.isEmpty())
+	{
+		return;
+	}
+
+	const size = new THREE.Vector3();
+	const center = new THREE.Vector3();
+	box.getSize(size);
+	box.getCenter(center);
+
+	const FovRad = (camera.fov * Math.PI) / 180;
+
+	let distance = (size.y / 2) / Math.tan(FovRad / 2);
+
+	const HFov = 2 * Math.atan(Math.tan(FovRad / 2) * camera.aspect);
+	const horizontalDistance = (size.x / 2) / Math.tan(HFov / 2);
+
+	distance = Math.max(distance, horizontalDistance) * OffsetFactor;
+
+	camera.position.set(
+	center.x + distance * 0.5,
+	center.y + distance * 0.5,
+	center.z + distance
+	);
+
+	camera.near = Math.max(0.1, distance / 100);
+	camera.far = Math.max(1000, distance * 10);
+	camera.updateProjectionMatrix();
+
+	if (controls)
+	{
+		controls.target.copy(center);
+		controls.update();
+	}
+	else
+	{
+		camera.lookAt(center);
+	}
 }
 
 function Clear(node: THREE.Object3D)
@@ -159,18 +218,48 @@ function onMouseMove(event: MouseEvent)
 	});
 }
 
+function ScaleZ(ZIndex: number): number
+{
+	if (ZIndex === 0)
+	{
+		return 0;
+	}
+
+	const sign = Math.sign(ZIndex);
+	const abs = Math.abs(ZIndex);
+	const Threshold = 30;
+
+	let scaled: number;
+
+	if (abs <= Threshold)
+	{
+		scaled = abs;
+	}
+	else
+	{
+		scaled = Threshold + Math.log1p(abs-Threshold) * 3;
+	}
+
+	return sign * scaled;
+}
+
 function RenderDOM(buffer: Array<CommMsg>)
 {
 	const StagingGroup = new THREE.Group();
 	for (const DOMElement of buffer)
 	{
-		const SafeZ = CurrentMaxZ === 0 ? 1 : CurrentMaxZ;
-		const ZColor = (Math.min(DOMElement['ZIndex'],CurrentMaxZ)/SafeZ)*0.85;
+		const ClampedZ = Math.max(0,Math.min(DOMElement['ZIndex'],CurrentMaxZ));
+		const SafeZScaled = ScaleZ(CurrentMaxZ) || 1;
+		const ElementScaled = ScaleZ(ClampedZ);
+
+		const ZColor = (ElementScaled/SafeZScaled)*0.85;
+		const ZPos = ScaleZ(DOMElement['ZIndex']) * RenderSettings.Gap;
+
 		const geometry = new THREE.BoxGeometry((DOMElement['Width']*RenderSettings.Scale),(DOMElement['Height']*RenderSettings.Scale),RenderSettings.Depth * (RenderSettings.OnlyDims ? 1 : RenderSettings.Scale)); //width,height,depth
 		const material = new THREE.MeshBasicMaterial({color: new THREE.Color().setHSL(ZColor,1,0.5)});
 		const cube = new THREE.Mesh(geometry,material);
 		cube.name = DOMElement['id'].toString();
-		cube.position.set((DOMElement['PosX']*RenderSettings.Scale),(DOMElement['PosY']*RenderSettings.Scale),(DOMElement['ZIndex']*RenderSettings.Gap));
+		cube.position.set((DOMElement['PosX']*RenderSettings.Scale),(DOMElement['PosY']*RenderSettings.Scale),(ZPos));
 		StagingGroup.add(cube);
 	}
 	scene.remove(ActiveDOMGroup);
@@ -197,6 +286,12 @@ port.onMessage.addListener(function(msg) {
 	{
 		CurrentMaxZ = MaxZ;
 		RenderDOM(NewDOMBuffer);
+		
+		if (!HasFittedCamera)
+		{
+			FitCamera(camera,controls,ActiveDOMGroup);
+			HasFittedCamera = true;
+		}
 		[CurrentDOMBuffer, NewDOMBuffer] = [NewDOMBuffer, CurrentDOMBuffer];
 		NewDOMBuffer.length = 0;
 		MaxZ = -1;
@@ -232,6 +327,8 @@ OptionsFolder.add(RenderSettings, 'Scale', 0.1, 1).onFinishChange(async function
 
 	RenderDOM(CurrentDOMBuffer);
 });
+
+OptionsFolder.add(RenderSettings, 'Reset View');
 
 MakeReadOnly(InfoFolder.add(RenderInfo,'TagName'));
 MakeReadOnly(InfoFolder.add(RenderInfo,'DOMID'));
