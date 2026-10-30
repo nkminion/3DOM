@@ -54,6 +54,11 @@ npm build vite
 * Open **Chrome DevTools**.
 * Navigate to the **3DOM** tab in the top panel and refresh the page to start.
 
+## Controls
+* Left-Mouse Button: Orbit
+* Scroll Button: Zoom
+* Right-Mouse Button: Pan
+
 ## Screenshots
 ![example.com](./screenies/example.png)
 
