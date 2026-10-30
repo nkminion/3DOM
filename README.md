@@ -21,7 +21,7 @@
 ## Installation
 
 ### Chrome Web Store (Recommended)
-Install directly from the [Chrome Web Store](i'll add one later lol)
+Install directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/3dom/hpacmboaaglophhdpihgedncgmjmjigi)
 
 ### Source Build
 
